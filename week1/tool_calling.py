@@ -12,7 +12,7 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
 )
 
-NUM_RUNS_TIMES = 1
+NUM_RUNS_TIMES = 3
 
 
 # ==========================
@@ -44,7 +44,7 @@ def _list_function_return_types(file_path: str) -> List[Tuple[str, str]]:
     return results
 
 
-def output_every_func_return_type(file_path: Optional[str] = None) -> str:
+def output_every_func_return_type(file_path: str = None) -> str:
     """Tool: Return a newline-delimited list of "name: return_type" for each top-level function."""
     path = file_path or __file__
     if not os.path.isabs(path):
@@ -64,34 +64,37 @@ def add(a: int, b: int) -> int:
 def greet(name: str) -> str:
     return f"Hello, {name}!"
 
+# Tool registry for dynamic execution by name
+TOOL_REGISTRY: Dict[str, Callable[..., str]] = {
+    "output_every_func_return_type": output_every_func_return_type,
+}
 
 # ==========================
 # Prompt scaffolding
 # ==========================
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = """
+YOUR_SYSTEM_PROMPT = ""
+
+
+COMPLETED_SYSTEM_PROMPT = """
 You are an agent that must call a tool instead of answering directly.
 Output ONLY a single JSON object with the following shape (no code blocks, no prose):
-{"tool": "output_every_func_return_type", "args": {"file_path": "<path-to-file>"}}
+{"tool": "FUNCTION_NAME", "args": ARGUMENTS}}
+
+Here are the available tools:
+<tool>
+name: output_every_func_return_type
+description : Return a newline-delimited list of "name: return_type" for each top-level function in a file.
+arguments:
+ - file_path: str (default: None)
+return_type: str
+</tool>
 
 Rules:
 - Do not explain your answer.
 - Do not output anything except valid JSON.
 """
-
-
-COMPLETED_SYSTEM_PROMPT = """
-You are an agent that must call a tool instead of answering directly.
-Output ONLY a single JSON object with this exact shape (no code blocks, no prose):
-{"tool": "output_every_func_return_type", "args": {"file_path": "tool_calling.py"}}
-"""
-
-
-# Tool registry for dynamic execution by name
-TOOL_REGISTRY: Dict[str, Callable[..., str]] = {
-    "output_every_func_return_type": output_every_func_return_type,
-}
 
 
 def resolve_path(p: str) -> str:
@@ -127,7 +130,7 @@ def run_model_for_tool_call(system_prompt: str) -> Dict[str, Any]:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": "Call the tool now."},
         ],
-        temperature=0.0,
+        temperature=0.3,
     )
     content = completion.choices[0].message.content
     return extract_tool_call(content)
@@ -167,14 +170,16 @@ def test_your_prompt(system_prompt: str) -> bool:
             call = run_model_for_tool_call(system_prompt)
         except Exception as exc:
             print(f"Failed to parse tool call: {exc}")
-            return False
+            continue
+        print(call)
         try:
             actual = execute_tool_call(call)
         except Exception as exc:
             print(f"Tool execution failed: {exc}")
-            return False
+            continue
         if actual.strip() == expected.strip():
-            print(actual)
+            print(f"Generated tool call: {call}")
+            print(f"Generated output: {actual}")
             print("SUCCESS")
             return True
         else:
@@ -185,6 +190,6 @@ def test_your_prompt(system_prompt: str) -> bool:
 
 if __name__ == "__main__":
     # Start with YOUR_SYSTEM_PROMPT; students should edit it to produce the correct tool call JSON.
-    test_your_prompt(COMPLETED_SYSTEM_PROMPT)
+    test_your_prompt(YOUR_SYSTEM_PROMPT)
 
 
