@@ -12,9 +12,7 @@ client = OpenAI(
 NUM_RUNS_TIMES = 5
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = """
-You are a helpful assistant that converts words from reverses the order of letters in a word.
-"""
+YOUR_SYSTEM_PROMPT = ""
 
 USER_PROMPT = """
 Convert the following word. Only output the word, no other text:

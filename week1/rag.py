@@ -41,9 +41,7 @@ QUESTION = (
 
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = """
-You are a retrieval-augmented assistant. Use ONLY the provided context to write code.
-"""
+YOUR_SYSTEM_PROMPT = ""
 
 COMPLETED_SYSTEM_PROMPT = """
 You are a retrieval-augmented assistant. Use ONLY the provided context to write code.

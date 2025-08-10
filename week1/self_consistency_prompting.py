@@ -13,10 +13,7 @@ client = OpenAI(
 NUM_RUNS_TIMES = 5
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = """
-You are a helpful assistant.
-Only output the final numeric answer on the last line prefixed by "Answer:".
-"""
+YOUR_SYSTEM_PROMPT = ""
 
 USER_PROMPT = """
 Solve this problem, then give the final answer on the last line as "Answer: <number>".

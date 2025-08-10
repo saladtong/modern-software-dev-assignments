@@ -19,9 +19,7 @@ Keep the implementation minimal.
 """
 
 # TODO: Fill these in!
-YOUR_REFLEXION_PROMPT = """
-You are improving the given function.
-"""
+YOUR_REFLEXION_PROMPT = ""
 
 
 COMPLETED_REFLEXION_PROMPT = """
