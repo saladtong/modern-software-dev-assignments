@@ -1,14 +1,15 @@
 # Assignment
 
-1. Scaffold a New Feature/endpoint
+1. Scaffold a New Feature
 
-Learning Goal:
-Students experience AI-assisted boilerplate generation and scaffolding within the existing framework—no manual typing needed. 
+Exercise:
+Implement an LLM‑powered extractor function `extract_action_items_llm`.
 
-2. Add Unit Tests (Test-Driven Development)
 
-Learning Goal:
-Demonstrates AI-enabled TDD workflows—Cursor can generate tests first, then code to satisfy them. 
+2. Add Unit Tests 
+
+Exercise:
+Write unit tests for `extract_action_items_llm` covering multiple inputs (e.g., bullet lists, keyword-prefixed lines, empty input).
 
 
 3. Refactor Existing Code for Clarity
