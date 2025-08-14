@@ -1,5 +1,7 @@
 # Assignment
 
+Here's how you can start running the existing app: `poetry run uvicorn week2.app.main:app --reload`
+
 1. Scaffold a New Feature
 
 Exercise:
@@ -20,9 +22,8 @@ Exercise:
 
 4. Use Agentic Mode to Automate a Small Task
 
-Learning Goal:
-Students see how Cursor’s Agentic Mode can analyze, plan, generate, and integrate code across multiple files autonomously with minimal human prompts. 
-
+Exercise:
+Integrate the LLM-powered extraction as a separate endpoint and expose that via the frontend UI. Also expose the ability to list all notes via the frontend.
 
 5. Generate a README from the Codebase
 
