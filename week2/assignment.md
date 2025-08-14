@@ -14,8 +14,9 @@ Write unit tests for `extract_action_items_llm` covering multiple inputs (e.g., 
 
 3. Refactor Existing Code for Clarity
 
-Learning Goal:
-Shows AI’s ability to understand logic and perform intelligent code rewrites and cleanup without writing new code manually. 
+Exercise:
+- Perform a refactor of the code in the backend, focusing in particular on well-defined API contracts/schemas, database layer cleanup, app lifecycle/configuration, error handling. 
+
 
 4. Use Agentic Mode to Automate a Small Task
 
