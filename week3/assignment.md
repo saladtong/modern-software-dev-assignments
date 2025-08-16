@@ -14,18 +14,15 @@ Bonus points for adding authentication (API keys or OAuth2) aligned with the MCP
 
 ## Requirements
 1. Choose an external API and document which endpoints you’ll use. Examples: weather, GitHub issues, Notion pages, movie/TV databases, calendar, task managers, finance/crypto, travel, sports stats.
-2. Expose at least two MCP tools:
-   - One must accept structured parameters (e.g., strings + numbers) and perform input validation.
-   - One must return a well-formatted result (multi-line text or JSON-encoded string). Prefer concise, human-readable summaries.
+2. Expose at least two MCP tools
 3. Implement basic resilience:
    - Graceful errors for HTTP failures, timeouts, and empty results.
    - Respect API rate limits (e.g., simple backoff or user-facing warning).
-   - Log to stderr or to a file. Do not write to stdout if using STDIO.
 4. Packaging and docs:
    - Provide clear setup instructions, environment variables, and run commands.
    - Include an example invocation flow (what to type/click in the client to trigger the tools).
 5. Choose one deployment mode:
-   - Local: STDIO server, runnable from your machine and discoverable by Claude Desktop.
+   - Local: STDIO server, runnable from your machine and discoverable by Claude Desktop or an AI IDE like Cursor.
    - Remote: HTTP server accessible over the network, callable by an MCP-aware client or an agent runtime. Extra credit if deployed and reachable.
 6. Bonus: Authentication
    - API key support via environment variable and client configuration; or
@@ -37,7 +34,6 @@ Bonus points for adding authentication (API keys or OAuth2) aligned with the MCP
   - Prerequisites, environment setup, and run instructions (local and/or remote).
   - How to configure the MCP client (Claude Desktop example for local) or agent runtime for remote.
   - Tool reference: names, parameters, example inputs/outputs, and expected behaviors.
-  - Troubleshooting notes (timeouts, auth failures, rate limiting).
 
 ## Evaluation rubric (100 pts total)
 - Functionality (35): Implements 2+ tools, correct API integration, meaningful outputs.
@@ -45,14 +41,15 @@ Bonus points for adding authentication (API keys or OAuth2) aligned with the MCP
 - Developer experience (20): Clear setup/docs, easy to run locally; sensible folder structure.
 - Code quality (15): Readable code, descriptive names, minimal complexity, type hints where applicable.
 - Extras (10):
-  - +5 Remote HTTP MCP server, callable by an agent/client.
+  - +5 Remote HTTP MCP server, callable by an agent/client such an the OpenAI/Claude SDK.
   - +5 Auth implemented correctly (API key or OAuth2 with audience validation).
 
 ## Helpful references
 - MCP Server Quickstart: [modelcontextprotocol.io/quickstart/server](https://modelcontextprotocol.io/quickstart/server)
 - MCP Authorization (HTTP): [modelcontextprotocol.io/specification/2025-06-18/basic/authorization](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization)
-- Remote MCP on Cloudflare (Agents): [developers.cloudflare.com/agents/guides/remote-mcp-server/](https://developers.cloudflare.com/agents/guides/remote-mcp-server/)
+- Remote MCP on Cloudflare (Agents): [developers.cloudflare.com/agents/guides/remote-mcp-server/](https://developers.cloudflare.com/agents/guides/remote-mcp-server/). Use the modelcontextprotocol inspector tool to debug your server locally before deploying.
+- https://vercel.com/docs/mcp/deploy-mcp-servers-to-vercel If you choose to do a remote MCP deployment, Vercel is a good option with a free tier. 
 
 ## What to submit
-- Link to your repository with `week3/` contents.
+- Link to your repository with `week3/` contents. The repository can be hosted outside of this repo if it is easier (for example if you end up deploying to Vercel). 
 - `week3/README.md` with clear run instructions and client configuration steps.
