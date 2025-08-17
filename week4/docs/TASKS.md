@@ -1,7 +1,5 @@
 # Tasks for Repo
 
-
-
 ## 1) Enable pre-commit and fix the repo
 - Install hooks: `pre-commit install`
 - Run: `pre-commit run --all-files`
@@ -21,10 +19,16 @@
 - Add tests for the new parsing behavior
 - (Optional) Expose `POST /notes/{id}/extract` that turns notes into action items
 
-## 6) Coverage and local quality gates
-- Add `pytest-cov` to deps and run with coverage threshold (e.g., 80%)
-- Enforce via a Makefile target; later you can wire this into CI via Claude
+## 5) Notes CRUD enhancements
+- Add `PUT /notes/{id}` to edit a note (title/content)
+- Add `DELETE /notes/{id}` to delete a note
+- Update `frontend/app.js` to support edit/delete; add tests
+
+## 6) Request validation and error handling
+- Add simple validation rules (e.g., min lengths) to `schemas.py`
+- Return informative 400/404 errors where appropriate; add tests for validation failures
 
 ## 7) Docs drift check (manual for now)
 - Create/maintain a simple `API.md` describing endpoints and payloads
+- After each change, verify docs match actual OpenAPI (`/openapi.json`)
 
