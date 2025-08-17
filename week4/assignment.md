@@ -1,0 +1,3 @@
+- TestAgent: given a diff, write/adjust tests and run them
+- DocsAgent: update docs after code changes
+- RefactorAgent: rename a module and fix imports/lints
