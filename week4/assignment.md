@@ -4,6 +4,7 @@ Build at least two automations in the context of this repo using any combination
 - Claude Code custom slash commands (checked into `.claude/commands/*.md`)
 - `CLAUDE.md` files for repository/context guidance
 - Claude SubAgents (role-specialized agents working together)
+- MCP servers integrated into Claude Code
 
 Use the app in `week4/` as your playground. Your automations should meaningfully improve a developer workflow (tests, docs, refactors, data tasks, etc.).
 
