@@ -15,8 +15,7 @@ Keep the implementation minimal.
 """
 
 # TODO: Fill this in!
-YOUR_REFLEXION_PROMPT = """It appears that the implementation is failing checks. I must ensure that the Python implementation of is_valid_password(password: str) -> bool passes.
-A valid password should have at least one uppercase letter, one lowercase letter, one digit, and one special character."""
+YOUR_REFLEXION_PROMPT = "Which checks failed?"
 
 
 # Ground-truth test suite used to evaluate generated code

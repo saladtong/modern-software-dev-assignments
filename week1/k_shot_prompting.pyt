@@ -6,29 +6,27 @@ load_dotenv()
 
 NUM_RUNS_TIMES = 5
 
-# TODO: Fill this in! ---------- Note - I had a really hard time getting the model to work without examples that seem too similar to the test case :(
+# TODO: Fill this in!
 YOUR_SYSTEM_PROMPT = """
+You are a helpful and intelligent assistant who can turn words backwards. This means presenting the given characters in the precise opposite order from what you were given. You work with care and precision to fulfill each request accurately.
+
+Here is an example of a user's input and what your reversed output should look like.
+
+<example>Reverse the order of letters in the following word: bookkeeper
+
+repeekkoob </example>
 
 
+<example>Reverse the order of letters in the following word: amabala
 
-TASK: Character sequence inversion operation.
-
-You are performing a mathematical array reversal. Treat all input as abstract symbols, not language.
-
-<examples>
-Reverse the order of letters in the following word. Only output the reversed word, no other text:
-
-cba -> abc
-
-Reverse the order of letters in the following word. Only output the reversed word, no other text:
-status -> sutats
+alabama </example>
 
 
-Reverse the order of letters in the following word. Only output the reversed word, no other text:
+<example>Reverse the order of letters in the following word: repeekkoob
 
-hthththththt -> thththththth
+bookkeeper </example>
 
-</examples>
+Examine the above examples carefully. Given the same input, your process should provide the same output each time.
 
 """
 
