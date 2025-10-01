@@ -88,58 +88,97 @@ def extract_action_items_llm(text: str) -> List[str]:
         "required": ["items"],
     }
 
+    # Improved guidance with few-shot examples and candidate grounding
     system_prompt = (
-        "You are an expert at extracting concrete, actionable TODO items from notes. "
-        "Return only valid JSON that conforms to the provided schema. "
-        "Items should be concise, imperative, and deduplicated."
+        "You extract concrete TODO items from messy notes. "
+        "Rules: return ONLY JSON per schema; write items in imperative mood; deduplicate; "
+        "exclude dates, names, and narrative unless essential; keep each item concise (<= 15 words)."
+    )
+    candidate_items = extract_action_items(text)
+    examples = (
+        "Examples:\n"
+        "Input: '- [ ] Set up database' -> 'Set up database'\n"
+        "Input: 'todo: update docs' -> 'update docs'\n"
+        "Input: 'Discuss architecture tradeoffs' -> (exclude)\n"
     )
     user_prompt = (
-        "Extract action items from the following notes. "
-        "Ignore narrative text that is not an action item.\n\n"
+        "Extract action items from the notes below. Prefer cleaning from CANDIDATES; "
+        "include additional items only if clearly implied.\n\n"
+        f"{examples}\n"
+        f"CANDIDATES: {json.dumps(candidate_items)}\n\n"
         f"NOTES:\n{text}"
     )
 
     response_content: str | None = None
+    # Strategy 1: simple JSON forcing (format="json") for maximum compatibility
     try:
-        # Prefer structured outputs if supported by the installed Ollama version
         response = chat(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
+                {"role": "user", "content": user_prompt + "\n\nOutput as {\"items\": [\"...\"]} only."},
             ],
-            # Ollama supports `format` for JSON/JSON Schema structured outputs.
-            # See: https://ollama.com/blog/structured-outputs
-            format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "action_items",
-                    "schema": schema,
-                },
-            },
+            format="json",
             options={"temperature": 0},
         )
-        # Expected shape: { "message": { "content": "{...json...}" }, ... }
         response_content = response.get("message", {}).get("content")  # type: ignore[assignment]
     except Exception:
-        # Fallback: request plain JSON (array) without schema enforcement
+        response_content = None
+
+    # Strategy 2: JSON Schema structured outputs (if supported)
+    if not response_content:
+        try:
+            response = chat(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "action_items",
+                        "schema": schema,
+                    },
+                },
+                options={"temperature": 0},
+            )
+            response_content = response.get("message", {}).get("content")  # type: ignore[assignment]
+        except Exception:
+            response_content = None
+
+    # Strategy 3: plain prompt with explicit JSON instruction
+    if not response_content:
         fallback_user_prompt = (
-            "Extract action items from the following notes and return ONLY a JSON "
-            "object with an `items` array of strings (no preface, no trailing text).\n\n"
-            f"NOTES:\n{text}"
+            "Extract action items and return ONLY a JSON object: {\\"items\\": [\\"...\\"]}. "
+            "No prose.\n\n" f"NOTES:\n{text}"
         )
-        response = chat(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": fallback_user_prompt},
-            ],
-            options={"temperature": 0},
-        )
-        response_content = response.get("message", {}).get("content")  # type: ignore[assignment]
+        try:
+            response = chat(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": fallback_user_prompt},
+                ],
+                options={"temperature": 0},
+            )
+            response_content = response.get("message", {}).get("content")  # type: ignore[assignment]
+        except Exception:
+            # If Ollama is unavailable or model pull fails, fall back to heuristic extractor
+            return extract_action_items(text)
 
     items: List[str] = []
     if response_content:
+        # Strip code-fence wrappers like ```json ... ``` if present
+        fenced = response_content.strip()
+        if fenced.startswith("```") and fenced.endswith("```"):
+            try:
+                inner = fenced.strip("`")
+                if inner.lower().startswith("json\n"):
+                    inner = inner.split("\n", 1)[1]
+                response_content = inner
+            except Exception:
+                pass
         # Try parsing as an object with `items`, but also handle if the model
         # returns a bare array.
         # Processing the json
@@ -169,6 +208,9 @@ def extract_action_items_llm(text: str) -> List[str]:
         seen.add(lowered)
         unique.append(cleaned)
 
+    # If LLM returned nothing useful, fall back to heuristic extractor
+    if not unique:
+        return extract_action_items(text)
     return unique
 
 

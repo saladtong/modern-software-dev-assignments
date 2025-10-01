@@ -41,3 +41,16 @@ def get_single_note(note_id: int) -> NoteResponse:
         raise HTTPException(status_code=500, detail="failed to get note")
 
 
+@router.get("", response_model=List[NoteResponse])
+def list_notes() -> List[NoteResponse]:
+    # List all notes in reverse chronological order
+    try:
+        rows = db.list_notes()
+        return [
+            NoteResponse(id=r["id"], content=r["content"], created_at=r["created_at"])  # type: ignore[index]
+            for r in rows
+        ]
+    except Exception:
+        raise HTTPException(status_code=500, detail="failed to list notes")
+
+
