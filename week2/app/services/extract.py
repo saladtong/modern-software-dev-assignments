@@ -74,6 +74,7 @@ def extract_action_items(text: str) -> List[str]:
     return unique
 
 
+# generated with user guidance
 def extract_action_items_llm(text: str) -> List[str]:
     text = text or ""
     if not text.strip():

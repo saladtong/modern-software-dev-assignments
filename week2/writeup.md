@@ -88,114 +88,6 @@ except json.JSONDecodeError:
 
 
 
-
-def extract_action_items_llm(text: str) -> List[str]:
-    text = text or ""
-    if not text.strip():
-        return []
-
-    # Allow overriding the model via env; choose a lightweight default
-    model = os.getenv("OLLAMA_MODEL", "llama3.1:8b-instruct")
-
-    # JSON schema for structured output. We ask for an object with a single
-    # property `items` that is an array of strings.
-    schema: dict[str, Any] = {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {
-            "items": {
-                "type": "array",
-                "items": {"type": "string"},
-            }
-        },
-        "required": ["items"],
-    }
-
-    system_prompt = (
-        "You are an expert at extracting concrete, actionable TODO items from notes. "
-        "Return only valid JSON that conforms to the provided schema. "
-        "Items should be concise, imperative, and deduplicated."
-    )
-    user_prompt = (
-        "Extract action items from the following notes. "
-        "Ignore narrative text that is not an action item.\n\n"
-        f"NOTES:\n{text}"
-    )
-
-    response_content: str | None = None
-    try:
-        # Prefer structured outputs if supported by the installed Ollama version
-        response = chat(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            # Ollama supports `format` for JSON/JSON Schema structured outputs.
-            # See: https://ollama.com/blog/structured-outputs
-            format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "action_items",
-                    "schema": schema,
-                },
-            },
-            options={"temperature": 0},
-        )
-        # Expected shape: { "message": { "content": "{...json...}" }, ... }
-        response_content = response.get("message", {}).get("content")  # type: ignore[assignment]
-    except Exception:
-        # Fallback: request plain JSON (array) without schema enforcement
-        fallback_user_prompt = (
-            "Extract action items from the following notes and return ONLY a JSON "
-            "object with an `items` array of strings (no preface, no trailing text).\n\n"
-            f"NOTES:\n{text}"
-        )
-        response = chat(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": fallback_user_prompt},
-            ],
-            options={"temperature": 0},
-        )
-        response_content = response.get("message", {}).get("content")  # type: ignore[assignment]
-
-    items: List[str] = []
-    if response_content:
-        # Try parsing as an object with `items`, but also handle if the model
-        # returns a bare array.
-        # Processing the json
-        try:
-            parsed = json.loads(response_content)
-            if isinstance(parsed, dict) and isinstance(parsed.get("items"), list):
-                items = [str(x).strip() for x in parsed["items"] if str(x).strip()]
-            elif isinstance(parsed, list):
-                items = [str(x).strip() for x in parsed if str(x).strip()]
-        except json.JSONDecodeError:
-            # Last resort: extract lines that look like list items
-            for line in response_content.splitlines():
-                candidate = BULLET_PREFIX_PATTERN.sub("", line).strip()
-                if candidate:
-                    items.append(candidate)
-
-    # Normalize & deduplicate
-    seen: set[str] = set()
-    unique: List[str] = []
-    for item in items:
-        cleaned = item.strip()
-        if not cleaned:
-            continue
-        lowered = cleaned.lower()
-        if lowered in seen:
-            continue
-        seen.add(lowered)
-        unique.append(cleaned)
-
-    return unique
-```
-
-
 ### app/routers/action_items.py — LLM extraction endpoint
 
 ```43:66:/Users/emilysaletan/Documents/GitHub/modern-software-dev-assignments/week2/app/routers/action_items.py
@@ -240,9 +132,48 @@ Add unit tests that contain lines starting with verbs, phrases like "make sure t
 
 Generated Code Snippets:
 ```
-4 from ..app.services.extract import extract_action_items, extract_action_items_llm
 
-# starting at line 22
+```4:145:/Users/emilysaletan/Documents/GitHub/modern-software-dev-assignments/week2/tests/test_extract.py
+from ..app.services.extract import extract_action_items, extract_action_items_llm
+
+
+def test_extract_bullets_and_checkboxes():
+    text = """
+    Notes from meeting:
+    - [ ] Set up database
+    * implement API extract endpoint
+    1. Write tests
+    Some narrative sentence.
+    """.strip()
+
+    items = extract_action_items(text)
+    assert "Set up database" in items
+    assert "implement API extract endpoint" in items
+    assert "Write tests" in items
+
+
+def test_extract_imperative_lines_without_markers():
+    text = (
+        "Implement authentication middleware\n"
+        "create database schema for users\n"
+        "Update deployment pipeline"
+    )
+    items = extract_action_items(text)
+    assert "Implement authentication middleware" in items
+    assert "create database schema for users" in items
+    assert "Update deployment pipeline" in items
+
+
+def test_ignore_plain_non_action_sentences():
+    text = (
+        "The system uses SQLite for persistence.\n"
+        "There are many careers like teacher, engineer, or nurse.\n"
+        "We discussed several options during the meeting."
+    )
+    items = extract_action_items(text)
+    assert items == []
+
+
 def test_llm_extract_bullet_list(monkeypatch):
     from ..app import services
 
@@ -315,17 +246,127 @@ def test_llm_extract_empty_input_short_circuits(monkeypatch):
 
     assert extract_action_items_llm("") == []
 
+
+def test_llm_extract_make_sure_and_careers(monkeypatch):
+    from ..app import services
+
+    def chat_mock(model=None, messages=None, **kwargs):
+        return {
+            "message": {
+                "content": (
+                    "{" "\"items\": ["
+                    "\"Make sure to follow up with the hiring manager\","
+                    "\"Schedule meeting with the software engineer candidates\","
+                    "\"Prepare outreach email for teachers and nurses\""
+                    "]}"
+                )
+            }
+        }
+
+    monkeypatch.setattr(services.extract, "chat", chat_mock)
+
+    text = (
+        "make sure to follow up with the hiring manager\n"
+        "Discuss various careers like software engineer, teacher, nurse\n"
+        "Schedule meeting with the software engineer candidates\n"
+        "Prepare outreach email for teachers and nurses"
+    )
+
+    items = extract_action_items_llm(text)
+    assert "Make sure to follow up with the hiring manager" in items
+    assert "Schedule meeting with the software engineer candidates" in items
+    assert "Prepare outreach email for teachers and nurses" in items
+
 ```
 
 ### Exercise 3: Refactor Existing Code for Clarity
 Prompt: 
 ```
-TODO
+Perform a refactor of the code in the backend, focusing in particular on well-defined API contracts/schemas, database layer cleanup, app lifecycle/configuration, error handling.
+
+When you refactored existing code for clarity, what was the modified code?
 ``` 
 
 Generated/Modified Code Snippets:
 ```
-TODO: List all modified code files with the relevant line numbers. (We anticipate there may be multiple scattered changes here – just produce as comprehensive of a list as you can.)
+ # extract.py 48-54
+    # Fallback: if nothing matched, first try line-wise imperative detection
+    if not extracted:
+        for raw_line in lines:
+            candidate = raw_line.strip()
+            if not candidate:
+                continue
+            if _looks_imperative(candidate):
+                extracted.append(candidate)
+    # Second fallback: sentence-wise split for cases without newlines or trailing punctuation
+    if not extracted:
+        sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+        for sentence in sentences:
+            s = sentence.strip()
+            if not s:
+                continue
+            if _looks_imperative(s):
+                extracted.append(s)
+
+#83-84
+    # Allow overriding the model via env; choose a lightweight default
+    model = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+
+#100-105
+    system_prompt = (
+        "You are an expert at extracting concrete, actionable TODO items from notes. "
+        "Think step by step INTERNALLY to identify candidate action lines (bullets, numbered items, keyword prefixes like 'todo:'/'action:'/'next:', "
+        "and sentences starting with imperative verbs such as add, create, implement, fix, update, write, check, verify, refactor, document, design, investigate). "
+        "Convert phrasings like 'make sure to pay rent' to 'Pay rent'. Convert narrative like 'I have to figure out where a good study space is' to a concise action like 'Find a good study space'. "
+        "OUTPUT REQUIREMENT: Return ONLY valid JSON conforming to the schema. Do not include any reasoning, commentary, or code fences."
+    )
+#153-175
+        # Strip code-fences like ```json ... ``` or ``` ... ``` if present
+        fenced = response_content.strip()
+        if fenced.startswith("```") and fenced.endswith("```"):
+            try:
+                inner = fenced.strip("`")
+                if "\n" in inner:
+                    inner = inner.split("\n", 1)[1]
+                response_content = inner
+            except Exception:
+                pass
+
+        # If the model mixed prose with JSON, try to isolate the first JSON object/array
+        content = response_content.strip()
+        start_obj = content.find("{"); end_obj = content.rfind("}")
+        start_arr = content.find("["); end_arr = content.rfind("]")
+        candidate_json = None
+        if start_obj != -1 and end_obj != -1 and end_obj > start_obj:
+            candidate_json = content[start_obj : end_obj + 1]
+        elif start_arr != -1 and end_arr != -1 and end_arr > start_arr:
+            candidate_json = content[start_arr : end_arr + 1]
+        if candidate_json is None:
+            candidate_json = content
+
+#177-188
+        # Try parsing as an object with `items`, but also handle a bare array
+        try:
+            parsed = json.loads(candidate_json)
+            if isinstance(parsed, dict) and isinstance(parsed.get("items"), list):
+                items = [str(x).strip() for x in parsed["items"] if str(x).strip()]
+            elif isinstance(parsed, list):
+                items = [str(x).strip() for x in parsed if str(x).strip()]
+        except json.JSONDecodeError:
+            # Last resort: extract lines that look like list items from the model output
+            for line in response_content.splitlines():
+                candidate = BULLET_PREFIX_PATTERN.sub("", line).strip()
+                if candidate:
+                    items.append(candidate)            
+
+#action_items.py 62-66
+    except HTTPException:
+        raise
+    except Exception as exc:
+        # Surface the underlying LLM error for easier debugging
+        raise HTTPException(status_code=502, detail=f"LLM extraction failed: {exc}")
+
+
 ```
 
 

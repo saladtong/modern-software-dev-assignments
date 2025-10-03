@@ -28,6 +28,7 @@ def create_note(payload: NoteCreate) -> NoteResponse:
         raise HTTPException(status_code=500, detail="failed to create note")
 
 
+# generated with user guidance
 @router.get("", response_model=List[NoteResponse])
 def list_notes() -> List[NoteResponse]:
     # List all notes in reverse chronological order
@@ -54,6 +55,7 @@ def get_single_note(note_id: int) -> NoteResponse:
         raise HTTPException(status_code=500, detail="failed to get note")
 
 
+# generated with user guidance
 @router.delete("/{note_id}", response_model=Dict[str, Any])
 def delete_note_endpoint(note_id: int) -> Dict[str, Any]:
     try:

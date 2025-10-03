@@ -40,6 +40,7 @@ def extract(payload: ActionExtractRequest) -> ActionExtractResponse:
         raise HTTPException(status_code=500, detail="failed to extract action items")
 
 
+# generated with user guidance
 @router.post("/extract-llm", response_model=ActionExtractResponse)
 def extract_llm(payload: ActionExtractRequest) -> ActionExtractResponse:
     # LLM-powered extraction endpoint
