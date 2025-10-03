@@ -4,6 +4,8 @@ import pytest
 from ..app.services.extract import extract_action_items, extract_action_items_llm
 
 
+# generated with user guidance
+# Tests added to cover imperative lines, LLM handling, careers content, and ignoring plain sentences
 def test_extract_bullets_and_checkboxes():
     text = """
     Notes from meeting:

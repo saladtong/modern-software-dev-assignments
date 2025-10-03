@@ -1,3 +1,4 @@
+<!-- generated with user guidance and a touch of editing -->
 ## Action Item Extractor (Week 2)
 
 ### Overview
@@ -10,13 +11,13 @@ This project is a minimal FastAPI application with a lightweight HTML frontend t
 ### Tech Stack
 - Backend: FastAPI, SQLite
 - Frontend: Static HTML/JS
-- LLM: Ollama (configurable via `OLLAMA_MODEL`)
+- LLM: Ollama (configurable via `OLLAMA_MODEL`), I used llama3.1:8b to run the tests and the page
 - Tests: pytest
 
 ### Setup
 1) Clone and enter the project directory
 ```bash
-git clone <your-fork-or-repo>
+gh repo clone saladtong/modern-software-dev-assignments
 cd modern-software-dev-assignments/week2
 ```
 
