@@ -19,6 +19,28 @@ def test_extract_bullets_and_checkboxes():
     assert "Write tests" in items
 
 
+def test_extract_imperative_lines_without_markers():
+    text = (
+        "Implement authentication middleware\n"
+        "create database schema for users\n"
+        "Update deployment pipeline"
+    )
+    items = extract_action_items(text)
+    assert "Implement authentication middleware" in items
+    assert "create database schema for users" in items
+    assert "Update deployment pipeline" in items
+
+
+def test_ignore_plain_non_action_sentences():
+    text = (
+        "The system uses SQLite for persistence.\n"
+        "There are many careers like teacher, engineer, or nurse.\n"
+        "We discussed several options during the meeting."
+    )
+    items = extract_action_items(text)
+    assert items == []
+
+
 def test_llm_extract_bullet_list(monkeypatch):
     from ..app import services
 
@@ -90,3 +112,34 @@ def test_llm_extract_empty_input_short_circuits(monkeypatch):
     monkeypatch.setattr(services.extract, "chat", chat_mock)
 
     assert extract_action_items_llm("") == []
+
+
+def test_llm_extract_make_sure_and_careers(monkeypatch):
+    from ..app import services
+
+    def chat_mock(model=None, messages=None, **kwargs):
+        return {
+            "message": {
+                "content": (
+                    "{" "\"items\": ["
+                    "\"Make sure to follow up with the hiring manager\","
+                    "\"Schedule meeting with the software engineer candidates\","
+                    "\"Prepare outreach email for teachers and nurses\""
+                    "]}"
+                )
+            }
+        }
+
+    monkeypatch.setattr(services.extract, "chat", chat_mock)
+
+    text = (
+        "make sure to follow up with the hiring manager\n"
+        "Discuss various careers like software engineer, teacher, nurse\n"
+        "Schedule meeting with the software engineer candidates\n"
+        "Prepare outreach email for teachers and nurses"
+    )
+
+    items = extract_action_items_llm(text)
+    assert "Make sure to follow up with the hiring manager" in items
+    assert "Schedule meeting with the software engineer candidates" in items
+    assert "Prepare outreach email for teachers and nurses" in items

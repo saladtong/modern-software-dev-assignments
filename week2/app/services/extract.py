@@ -45,7 +45,15 @@ def extract_action_items(text: str) -> List[str]:
             cleaned = cleaned.removeprefix("[ ]").strip()
             cleaned = cleaned.removeprefix("[todo]").strip()
             extracted.append(cleaned)
-    # Fallback: if nothing matched, heuristically split into sentences and pick imperative-like ones
+    # Fallback: if nothing matched, first try line-wise imperative detection
+    if not extracted:
+        for raw_line in lines:
+            candidate = raw_line.strip()
+            if not candidate:
+                continue
+            if _looks_imperative(candidate):
+                extracted.append(candidate)
+    # Second fallback: sentence-wise split for cases without newlines or trailing punctuation
     if not extracted:
         sentences = re.split(r"(?<=[.!?])\s+", text.strip())
         for sentence in sentences:
@@ -90,8 +98,9 @@ def extract_action_items_llm(text: str) -> List[str]:
 
     system_prompt = (
         "You are an expert at extracting concrete, actionable TODO items from notes. "
-        "Return only valid JSON that conforms to the provided schema. "
-        "Items should be concise, imperative, and deduplicated."
+        "Think step by step to identify candidate action lines (bullets, numbered items, keyword prefixes like 'todo:'/'action:'/'next:', "
+        "and sentences starting with imperative verbs such as add, create, implement, fix, update, write, check, verify, refactor, document, design, investigate). "
+        "Then output only the final deduplicated items in imperative mood. Return ONLY valid JSON conforming to the schema."
     )
     user_prompt = (
         "Extract action items from the following notes. "
