@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 
 from .. import db
-from ..services.extract import extract_action_items
+from ..services.extract import extract_action_items, extract_action_items_llm
 from ..schemas import (
     ActionExtractRequest,
     ActionExtractResponse,
@@ -38,6 +38,31 @@ def extract(payload: ActionExtractRequest) -> ActionExtractResponse:
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="failed to extract action items")
+
+
+@router.post("/extract-llm", response_model=ActionExtractResponse)
+def extract_llm(payload: ActionExtractRequest) -> ActionExtractResponse:
+    # LLM-powered extraction endpoint
+    text = payload.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text is required")
+
+    try:
+        note_id: Optional[int] = None
+        if payload.save_note:
+            note_id = db.insert_note(text)
+
+        items = extract_action_items_llm(text)
+        ids = db.insert_action_items(items, note_id=note_id)
+        return ActionExtractResponse(
+            note_id=note_id,
+            items=[ActionItemResponse(id=i, text=t) for i, t in zip(ids, items)],
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        # Surface the underlying LLM error for easier debugging
+        raise HTTPException(status_code=502, detail=f"LLM extraction failed: {exc}")
 
 
 @router.get("", response_model=List[ActionItemListItem])

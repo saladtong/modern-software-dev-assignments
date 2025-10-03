@@ -114,3 +114,14 @@ def mark_action_item_done(action_item_id: int, done: bool) -> None:
         connection.commit()
 
 
+
+def delete_note(note_id: int) -> None:
+    """Delete a note and any related action items."""
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        # First remove action items linked to the note
+        cursor.execute("DELETE FROM action_items WHERE note_id = ?", (note_id,))
+        # Then remove the note itself
+        cursor.execute("DELETE FROM notes WHERE id = ?", (note_id,))
+        connection.commit()
+

@@ -80,7 +80,7 @@ def extract_action_items_llm(text: str) -> List[str]:
         return []
 
     # Allow overriding the model via env; choose a lightweight default
-    model = os.getenv("OLLAMA_MODEL", "llama3.1:8b-instruct")
+    model = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 
     # JSON schema for structured output. We ask for an object with a single
     # property `items` that is an array of strings.
@@ -98,9 +98,10 @@ def extract_action_items_llm(text: str) -> List[str]:
 
     system_prompt = (
         "You are an expert at extracting concrete, actionable TODO items from notes. "
-        "Think step by step to identify candidate action lines (bullets, numbered items, keyword prefixes like 'todo:'/'action:'/'next:', "
+        "Think step by step INTERNALLY to identify candidate action lines (bullets, numbered items, keyword prefixes like 'todo:'/'action:'/'next:', "
         "and sentences starting with imperative verbs such as add, create, implement, fix, update, write, check, verify, refactor, document, design, investigate). "
-        "Then output only the final deduplicated items in imperative mood. Return ONLY valid JSON conforming to the schema."
+        "Convert phrasings like 'make sure to pay rent' to 'Pay rent'. Convert narrative like 'I have to figure out where a good study space is' to a concise action like 'Find a good study space'. "
+        "OUTPUT REQUIREMENT: Return ONLY valid JSON conforming to the schema. Do not include any reasoning, commentary, or code fences."
     )
     user_prompt = (
         "Extract action items from the following notes. "
@@ -149,17 +150,38 @@ def extract_action_items_llm(text: str) -> List[str]:
 
     items: List[str] = []
     if response_content:
-        # Try parsing as an object with `items`, but also handle if the model
-        # returns a bare array.
-        # Processing the json
+        # Strip code-fences like ```json ... ``` or ``` ... ``` if present
+        fenced = response_content.strip()
+        if fenced.startswith("```") and fenced.endswith("```"):
+            try:
+                inner = fenced.strip("`")
+                if "\n" in inner:
+                    inner = inner.split("\n", 1)[1]
+                response_content = inner
+            except Exception:
+                pass
+
+        # If the model mixed prose with JSON, try to isolate the first JSON object/array
+        content = response_content.strip()
+        start_obj = content.find("{"); end_obj = content.rfind("}")
+        start_arr = content.find("["); end_arr = content.rfind("]")
+        candidate_json = None
+        if start_obj != -1 and end_obj != -1 and end_obj > start_obj:
+            candidate_json = content[start_obj : end_obj + 1]
+        elif start_arr != -1 and end_arr != -1 and end_arr > start_arr:
+            candidate_json = content[start_arr : end_arr + 1]
+        if candidate_json is None:
+            candidate_json = content
+
+        # Try parsing as an object with `items`, but also handle a bare array
         try:
-            parsed = json.loads(response_content)
+            parsed = json.loads(candidate_json)
             if isinstance(parsed, dict) and isinstance(parsed.get("items"), list):
                 items = [str(x).strip() for x in parsed["items"] if str(x).strip()]
             elif isinstance(parsed, list):
                 items = [str(x).strip() for x in parsed if str(x).strip()]
         except json.JSONDecodeError:
-            # Last resort: extract lines that look like list items
+            # Last resort: extract lines that look like list items from the model output
             for line in response_content.splitlines():
                 candidate = BULLET_PREFIX_PATTERN.sub("", line).strip()
                 if candidate:
