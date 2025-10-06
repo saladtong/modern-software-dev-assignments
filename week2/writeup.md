@@ -5,7 +5,7 @@ Tip: To preview this markdown file
 
 ## INSTRUCTIONS
 
-Fill out all of the `TODO`s in this file.
+Fill out all of the `T*ODO`s in this file.
 
 ## SUBMISSION DETAILS
 
@@ -284,7 +284,14 @@ Prompt:
 ```
 Perform a refactor of the code in the backend, focusing in particular on well-defined API contracts/schemas, database layer cleanup, app lifecycle/configuration, error handling.
 
-When you refactored existing code for clarity, what was the modified code?
+Please standardize the response schemas and the error handling.
+
+Analyze and optimize the layers of the database
+
+TypeError: Can't instantiate abstract class ActionItemRepository without an implementation for abstract method 'update'
+
+
+
 ``` 
 
 Generated/Modified Code Snippets:
@@ -374,6 +381,8 @@ Generated/Modified Code Snippets:
 Prompt: 
 ```
 Integrate the LLM-powered extraction as a new endpoint. Update the frontend to include an "Extract LLM" button that, when clicked, triggers the extraction process via the new endpoint. Expose one final endpoint to retrieve all notes. Update the frontend to include a "List Notes" button that, when clicked, fetches and displays them.
+
+Please add the ability to delete notes from the list.
 ``` 
 
 Generated Code Snippets:
@@ -535,16 +544,23 @@ def delete_note(note_id: int) -> None:
 ### Exercise 5: Generate a README from the Codebase
 Prompt: 
 ```
-TODO
+Generate a well-structured README.md file from the week2 codebase. The README should include, at a minimum:
+
+A brief overview of the project
+How to set up and run the project
+API endpoints and functionality
+Instructions for running the test suite
+
+Thank you!
 ``` 
 
 Generated Code Snippets:
 ```
-TODO: List all modified code files with the relevant line numbers.
+The README markdown file was generated, I looked it over and added a couple clarifications
 ```
 
 
 ## SUBMISSION INSTRUCTIONS
-1. Hit a `Command (⌘) + F` (or `Ctrl + F`) to find any remaining `TODO`s in this file. If no results are found, congratulations – you've completed all required fields. 
+1. Hit a `Command (⌘) + F` (or `Ctrl + F`) to find any remaining `T*ODO`s in this file. If no results are found, congratulations – you've completed all required fields. 
 2. Make sure you have all changes pushed to your remote repository for grading.
 3. Submit via Gradescope. 

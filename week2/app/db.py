@@ -4,6 +4,10 @@ import sqlite3
 from pathlib import Path
 from typing import Optional
 
+# Import optimized database components
+from .database.connection import get_pool, close_pool
+from .database.schema import create_tables
+from .database.optimized_db import optimized_db
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BASE_DIR / "data"
@@ -11,10 +15,12 @@ DB_PATH = DATA_DIR / "app.db"
 
 
 def ensure_data_directory_exists() -> None:
+    """Ensure the data directory exists."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_connection() -> sqlite3.Connection:
+    """Get a database connection (legacy method - use optimized_db for new code)."""
     ensure_data_directory_exists()
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
@@ -22,106 +28,61 @@ def get_connection() -> sqlite3.Connection:
 
 
 def init_db() -> None:
+    """Initialize the database with optimized schema and indexes."""
     ensure_data_directory_exists()
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS notes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                content TEXT NOT NULL,
-                created_at TEXT DEFAULT (datetime('now'))
-            );
-            """
-        )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS action_items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                note_id INTEGER,
-                text TEXT NOT NULL,
-                done INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (note_id) REFERENCES notes(id)
-            );
-            """
-        )
-        connection.commit()
+    create_tables()
 
+
+# Legacy functions - maintained for backward compatibility
+# New code should use optimized_db for better performance
 
 def insert_note(content: str) -> int:
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute("INSERT INTO notes (content) VALUES (?)", (content,))
-        connection.commit()
-        return int(cursor.lastrowid)
+    """Legacy function - use optimized_db.create_note() for new code."""
+    return optimized_db.create_note(content)
 
 
 def list_notes() -> list[sqlite3.Row]:
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute("SELECT id, content, created_at FROM notes ORDER BY id DESC")
-        return list(cursor.fetchall())
+    """Legacy function - use optimized_db.list_notes() for new code."""
+    return optimized_db.list_notes()
 
 
 def get_note(note_id: int) -> Optional[sqlite3.Row]:
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute(
-            "SELECT id, content, created_at FROM notes WHERE id = ?",
-            (note_id,),
-        )
-        row = cursor.fetchone()
-        return row
+    """Legacy function - use optimized_db.get_note() for new code."""
+    return optimized_db.get_note(note_id)
 
 
 def insert_action_items(items: list[str], note_id: Optional[int] = None) -> list[int]:
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        ids: list[int] = []
-        for item in items:
-            cursor.execute(
-                "INSERT INTO action_items (note_id, text) VALUES (?, ?)",
-                (note_id, item),
-            )
-            ids.append(int(cursor.lastrowid))
-        connection.commit()
-        return ids
+    """Legacy function - use optimized_db.create_action_items_batch() for new code."""
+    return optimized_db.create_action_items_batch(items, note_id)
 
 
 def list_action_items(note_id: Optional[int] = None) -> list[sqlite3.Row]:
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        if note_id is None:
-            cursor.execute(
-                "SELECT id, note_id, text, done, created_at FROM action_items ORDER BY id DESC"
-            )
-        else:
-            cursor.execute(
-                "SELECT id, note_id, text, done, created_at FROM action_items WHERE note_id = ? ORDER BY id DESC",
-                (note_id,),
-            )
-        return list(cursor.fetchall())
+    """Legacy function - use optimized_db.list_action_items() for new code."""
+    return optimized_db.list_action_items(note_id)
 
 
 def mark_action_item_done(action_item_id: int, done: bool) -> None:
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute(
-            "UPDATE action_items SET done = ? WHERE id = ?",
-            (1 if done else 0, action_item_id),
-        )
-        connection.commit()
-
+    """Legacy function - use optimized_db.update_action_item_status() for new code."""
+    optimized_db.update_action_item_status(action_item_id, done)
 
 
 def delete_note(note_id: int) -> None:
-    """Delete a note and any related action items."""
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        # First remove action items linked to the note
-        cursor.execute("DELETE FROM action_items WHERE note_id = ?", (note_id,))
-        # Then remove the note itself
-        cursor.execute("DELETE FROM notes WHERE id = ?", (note_id,))
-        connection.commit()
+    """Legacy function - use optimized_db.delete_note() for new code."""
+    optimized_db.delete_note(note_id)
+
+
+# New optimized functions
+def get_database_stats() -> dict:
+    """Get database and cache statistics."""
+    return optimized_db.get_stats()
+
+
+def optimize_database() -> None:
+    """Run database optimization."""
+    optimized_db.optimize_database()
+
+
+def cleanup_database() -> None:
+    """Clean up database connections."""
+    close_pool()
 
